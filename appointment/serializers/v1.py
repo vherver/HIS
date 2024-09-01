@@ -20,7 +20,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ["name", "phone", "appointment_time", "duration_minutes", "doctor"]
+        fields = ["id", "name", "phone", "appointment_time",
+                  "duration_minutes", "doctor"]
 
     def validate(self, data):
         """

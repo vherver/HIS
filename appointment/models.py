@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.db import models
 
@@ -17,7 +19,6 @@ class Appointment(TimeStampMixin):
         doctor (ForeignKey): The doctor assigned to the appointment
         (auto-set to the logged-in user).
     """
-
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     appointment_time = models.DateTimeField()
@@ -37,3 +38,8 @@ class Appointment(TimeStampMixin):
             person's name, doctor, and appointment time.
         """
         return f"{self.name} with Dr. {self.doctor} - {self.appointment_time}"
+
+    def soft_delete(self):
+        """Soft delete the appointment."""
+        self.deleted = datetime.now()
+        self.save(update_fields=["deleted"])
