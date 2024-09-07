@@ -22,9 +22,9 @@ class Appointment(TimeStampMixin):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     appointment_time = models.DateTimeField()
-    duration_minutes = models.PositiveIntegerField()  # Duration in minutes
+    duration_minutes = models.PositiveIntegerField()
     doctor = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # Assuming the `User` model is used for doctors
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="appointments",
     )

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -52,7 +53,8 @@ class AppointmentView(generics.ListCreateAPIView):
 
         return Response(grouped_appointments)
 
-class AppointmentDetailView(generics.RetrieveDestroyAPIView):
+
+class AppointmentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Appointment.objects.filter(deleted__isnull=True)
     serializer_class = AppointmentSerializer
     permission_classes = (IsAuthenticated,)
@@ -69,6 +71,60 @@ class AppointmentDetailView(generics.RetrieveDestroyAPIView):
         return obj
 
     def delete(self, request, *args, **kwargs):
+        """
+        Soft delete the appointment (cancel) if the authenticated user is the creator.
+        """
         appointment = self.get_object()
         appointment.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update the appointment details if the authenticated user is the creator.
+        """
+        appointment = self.get_object()
+        serializer = self.get_serializer(appointment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentNotificationView(generics.ListAPIView):
+    """
+    Endpoint to send notifications for tomorrow's appointments.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        now = timezone.now()
+
+        tomorrow_start = (now + timedelta(days=1)).replace(hour=0, minute=0,
+                                                           second=0,
+                                                           microsecond=0)
+        tomorrow_end = (now + timedelta(days=2)).replace(hour=0, minute=0,
+                                                         second=0,
+                                                         microsecond=0)
+
+        appointments = Appointment.objects.filter(
+            appointment_time__gte=tomorrow_start,
+            appointment_time__lt=tomorrow_end,
+            deleted__isnull=True
+        )
+
+        notifications = []
+        for appointment in appointments:
+            message = (
+                f"Hola {appointment.name}, "
+                f"te recordamos que mañana tienes una cita a las "
+                f"{appointment.appointment_time} "
+                f"con {appointment.doctor.first_name}."
+            )
+
+            notifications.append({
+                "message": message,
+            })
+
+        return Response({
+            "status": "Notifications sent",
+            "notifications": notifications
+        })
